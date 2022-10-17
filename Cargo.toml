@@ -40,9 +40,10 @@ secrecy = { version = "0.8", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4.22", default-features = false, features = ["clock"] }
 config = "0.13"
-serde = { version = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"] }
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
 
 [dependencies.sqlx]
 version = "0.6"
@@ -53,6 +54,6 @@ features = [
   "postgres",
   "uuid",
   "chrono",
-  "migrate"
+  "migrate",
+  "offline",
 ]
-
