@@ -14,7 +14,6 @@ struct SendEmailRequest<'a> {
 
 pub struct EmailClient {
     http_client: Client,
-    base_url: url::Url,
     url: url::Url,
     sender: SubscriberEmail,
     authorization_token: Secret<String>,
@@ -27,12 +26,10 @@ impl EmailClient {
         authorization_token: Secret<String>,
         timeout: std::time::Duration,
     ) -> Result<Self, url::ParseError> {
-        let base_url = reqwest::Url::parse(base_url.as_str())?;
-        let url = base_url.join("/email")?;
+        let url = reqwest::Url::parse(base_url.as_str())?.join("/email")?;
         let http_client = Client::builder().timeout(timeout).build().unwrap();
         Ok(Self {
             http_client,
-            base_url,
             url,
             sender,
             authorization_token,
