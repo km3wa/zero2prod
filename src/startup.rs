@@ -37,7 +37,7 @@ impl Application {
         // We "save" the bound port in one of `Application`'s fields
         Ok(Self { port, server })
     }
-    
+
     pub fn port(&self) -> u16 {
         self.port
     }
