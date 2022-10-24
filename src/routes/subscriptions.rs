@@ -21,7 +21,6 @@ pub struct FormData {
     name: String,
 }
 
-
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
     skip(new_subscriber, pool)
