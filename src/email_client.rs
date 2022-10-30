@@ -14,26 +14,26 @@ struct SendEmailRequest<'a> {
 
 pub struct EmailClient {
     http_client: Client,
-    url: url::Url,
+    base_url: reqwest::Url,
     sender: SubscriberEmail,
     authorization_token: Secret<String>,
 }
 
 impl EmailClient {
     pub fn new(
-        base_url: String,
+        base_url_string: String,
         sender: SubscriberEmail,
         authorization_token: Secret<String>,
         timeout: std::time::Duration,
-    ) -> Result<Self, url::ParseError> {
-        let url = reqwest::Url::parse(base_url.as_str())?.join("/email")?;
+    ) -> Self {
         let http_client = Client::builder().timeout(timeout).build().unwrap();
-        Ok(Self {
+        let base_url = reqwest::Url::try_from(base_url_string.as_ref()).unwrap();
+        Self {
             http_client,
-            url,
+            base_url,
             sender,
             authorization_token,
-        })
+        }
     }
 
     pub async fn send_email(
@@ -43,6 +43,9 @@ impl EmailClient {
         html_body: &str,
         text_body: &str,
     ) -> Result<(), reqwest::Error> {
+        let mut url = self.base_url.clone();
+        url.set_path("email");
+
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
@@ -52,7 +55,8 @@ impl EmailClient {
         };
 
         self.http_client
-            .post(self.url.clone())
+            .post(url)
+            .header("Accept", "application/json")
             .header(
                 "X-Postmark-Server-Token",
                 self.authorization_token.expose_secret(),
@@ -61,6 +65,7 @@ impl EmailClient {
             .send()
             .await?
             .error_for_status()?;
+
         Ok(())
     }
 }
@@ -83,6 +88,7 @@ mod tests {
             // Try to parse the body as a JSON value
             let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
             if let Ok(body) = result {
+                dbg!(&body);
                 // Check that all the mandatory fields are populated
                 // without inspecting the field values
                 body.get("From").is_some()
@@ -118,7 +124,6 @@ mod tests {
             Secret::new(Faker.fake()),
             std::time::Duration::from_millis(200),
         )
-        .unwrap()
     }
 
     #[tokio::test]
