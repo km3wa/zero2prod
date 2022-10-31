@@ -36,6 +36,7 @@ wiremock = "0.5"
 # `#[derive(Serialize)]` and `#[derive(Deserialize)]`.
 # The feature is not enabled by default to avoid pulling in
 # unnecessary dependencies for projects that do not need it.
+anyhow = "1"
 rand = { version = "0.8", features=["std_rng"] }
 claim = "0.5"
 validator = { version = "0.16", features = ["derive"] }
@@ -54,6 +55,7 @@ serde-aux = "4"
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 unicode-segmentation = "1"
+thiserror = "1"
 # url = "2.3.1"
 
 [dependencies.reqwest]
