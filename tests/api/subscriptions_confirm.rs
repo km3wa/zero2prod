@@ -1,3 +1,4 @@
+use uuid::Uuid;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
@@ -17,6 +18,24 @@ async fn confirmations_without_token_are_rejected_with_a_400() {
 
     // Assert
     assert_eq!(response.status().as_u16(), 400);
+}
+
+#[tokio::test]
+async fn confirmations_with_invalid_token_are_rejected_by_401() {
+    // Arrange
+    let app = spawn_app().await;
+    let invalid_token = Uuid::new_v4();
+
+    // Act
+    let response = reqwest::get(&format!(
+        "{}/subscriptions/confirm?subscription_token={}",
+        app.address, invalid_token
+    ))
+    .await
+    .unwrap();
+
+    // Assert
+    assert_eq!(response.status().as_u16(), 401);
 }
 
 #[tokio::test]
