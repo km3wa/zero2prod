@@ -1,4 +1,4 @@
-use uuid::Uuid;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
@@ -21,10 +21,30 @@ async fn confirmations_without_token_are_rejected_with_a_400() {
 }
 
 #[tokio::test]
+async fn confirmations_with_invalid_token_format_are_rejected_by_400() {
+    let invalid_token = "hunter2";
+    let app = spawn_app().await;
+
+    let response = reqwest::get(&format!(
+        "{}/subscriptions/confirm?subscription_token={}",
+        app.address, invalid_token
+    ))
+    .await
+    .unwrap();
+
+    assert_eq!(response.status().as_u16(), 400);
+}
+
+#[tokio::test]
 async fn confirmations_with_invalid_token_are_rejected_by_401() {
     // Arrange
     let app = spawn_app().await;
-    let invalid_token = Uuid::new_v4();
+    let mut rng = thread_rng();
+
+    let invalid_token: String = std::iter::repeat_with(|| rng.sample(Alphanumeric))
+        .map(char::from)
+        .take(25)
+        .collect();
 
     // Act
     let response = reqwest::get(&format!(

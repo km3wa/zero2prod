@@ -3,10 +3,14 @@ use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::SubscriptionToken;
+
 use super::error_chain_fmt;
 
 #[derive(thiserror::Error)]
 pub enum ConfirmationError {
+    #[error("Invalid subscription token format.")]
+    InvalidTokenFormat,
     #[error("Subscription token does not exist in database.")]
     TokenNotFound,
     #[error(transparent)]
@@ -22,6 +26,7 @@ impl std::fmt::Debug for ConfirmationError {
 impl ResponseError for ConfirmationError {
     fn status_code(&self) -> StatusCode {
         match self {
+            ConfirmationError::InvalidTokenFormat => StatusCode::BAD_REQUEST,
             ConfirmationError::TokenNotFound => StatusCode::UNAUTHORIZED,
             ConfirmationError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -38,7 +43,10 @@ pub async fn confirm(
     parameters: web::Query<Parameters>,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, ConfirmationError> {
-    let subscriber_id = get_subscriber_id_from_token(&pool, &parameters.subscription_token)
+    let validated_token = SubscriptionToken::parse(parameters.subscription_token.as_str())
+        .map_err(|_| ConfirmationError::InvalidTokenFormat)?;
+
+    let subscriber_id = get_subscriber_id_from_token(&pool, validated_token)
         .await
         .context("Failed to query subscription_token from database.")?
         .ok_or(ConfirmationError::TokenNotFound)?;
@@ -69,12 +77,12 @@ pub async fn confirm_subscriber(pool: &PgPool, subscriber_id: Uuid) -> Result<()
 #[tracing::instrument(name = "Get subscriber_id from token", skip(subscription_token, pool))]
 pub async fn get_subscriber_id_from_token(
     pool: &PgPool,
-    subscription_token: &str,
+    subscription_token: SubscriptionToken<'_>,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     let result = sqlx::query!(
         "SELECT subscriber_id FROM subscription_tokens \
 WHERE subscription_token = $1",
-        subscription_token,
+        subscription_token.as_ref(),
     )
     .fetch_optional(pool)
     .await
