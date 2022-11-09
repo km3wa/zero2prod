@@ -37,6 +37,8 @@ wiremock = "0.5"
 # The feature is not enabled by default to avoid pulling in
 # unnecessary dependencies for projects that do not need it.
 anyhow = "1"
+argon2 = { version = "0.4", features = ["std"] }
+base64 = "0.13"
 rand = { version = "0.8", features=["std_rng"] }
 claim = "0.5"
 validator = { version = "0.16", features = ["derive"] }
