@@ -1,7 +1,12 @@
 application:
   host: 0.0.0.0
   port: 8000
-  
+  # [...]
+  # You need to set the `APP_APPLICATION__HMAC_SECRET` environment variable
+  # on Digital Ocean as well for production!
+  hmac_secret: "long-and-very-secret-random-key-needed-to-verify-message-integrity"
+  # [...]
+
 database:
   host: "127.0.0.1"
   port: 5432
