@@ -12,6 +12,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
+    pub redis_uri: Secret<String>,
 }
 
 #[derive(Clone, serde::Deserialize)]
@@ -93,7 +94,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             configuration_directory.join("base.yaml"),
         ))
         .add_source(config::File::from(
-            configuration_directory.join(&environment_filename),
+            configuration_directory.join(environment_filename),
         ))
         // Add in settings from environment variables (with a prefix of APP and
         // '__' as separator)
