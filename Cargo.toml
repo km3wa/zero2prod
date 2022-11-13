@@ -56,20 +56,18 @@ config = "0.13"
 serde = { version = "1", features = ["derive"] }
 serde-aux = "4"
 actix-web = "4"
+actix-web-flash-messages = { version = "0.4", features = ["cookies"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 unicode-segmentation = "1"
 urlencoding = "2"
 thiserror = "1"
-hmac = { version = "0.12", features = ["std"] }
-sha2 = "0.10"
-hex = "0.4"
 # url = "2.3.1"
 
 [dependencies.reqwest]
 version = "0.11"
 default-features = false
 # We need the `json` feature flag to serialize/deserialize JSON payloads
-features = ["json", "rustls-tls"]
+features = ["json", "rustls-tls", "cookies"]
 
 [dependencies.sqlx]
 version = "0.6"
