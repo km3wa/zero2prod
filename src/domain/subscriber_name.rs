@@ -1,5 +1,6 @@
 use unicode_segmentation::UnicodeSegmentation;
 
+#[repr(transparent)]
 #[derive(Debug)]
 pub struct SubscriberName(String);
 

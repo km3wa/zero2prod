@@ -1,3 +1,4 @@
+#[repr(transparent)]
 #[derive(Debug)]
 pub struct SubscriberEmail(String);
 
