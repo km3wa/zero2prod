@@ -6,17 +6,13 @@ use anyhow::Context;
 use reqwest::StatusCode;
 use sqlx::PgPool;
 
-use crate::{
-    domain::SubscriberEmail,
-    email_client::EmailClient,
-    routes::error_chain_fmt, 
-};
+use crate::{domain::SubscriberEmail, email_client::EmailClient, routes::error_chain_fmt};
 
 #[derive(serde::Deserialize)]
 pub struct BodyData {
     title: String,
     text: String,
-    html: String
+    html: String,
 }
 
 #[derive(thiserror::Error)]
