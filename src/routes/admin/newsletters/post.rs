@@ -2,19 +2,29 @@ use actix_web::{
     http::header::{self, HeaderValue},
     web, HttpResponse, ResponseError,
 };
+use actix_web_flash_messages::FlashMessage;
 use anyhow::Context;
 use reqwest::StatusCode;
 use sqlx::PgPool;
 
-use crate::{domain::SubscriberEmail, email_client::EmailClient, routes::error_chain_fmt};
+use crate::{
+    authentication::UserId,
+    domain::SubscriberEmail,
+    email_client::EmailClient,
+    idempotency::{get_saved_response, save_response, IdempotencyKey},
+    routes::error_chain_fmt,
+    utils::{e400, e500, see_other},
+};
 
 #[derive(serde::Deserialize)]
-pub struct BodyData {
+pub struct FormData {
     title: String,
-    text: String,
-    html: String,
+    text_content: String,
+    html_content: String,
+    idempotency_key: String,
 }
 
+#[allow(dead_code)]
 #[derive(thiserror::Error)]
 pub enum PublishError {
     #[error("Authentication failed.")]
@@ -60,12 +70,29 @@ struct ConfirmedSubscriber {
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
 pub async fn publish_newsletter(
-    form: web::Form<BodyData>,
+    form: web::Form<FormData>,
     pool: web::Data<PgPool>,
-    // New argument!
+    user_id: web::ReqData<UserId>,
     email_client: web::Data<EmailClient>,
-) -> Result<HttpResponse, PublishError> {
-    let subscribers = get_confirmed_subscribers(&pool).await?;
+) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = user_id.into_inner();
+    let FormData {
+        title,
+        text_content,
+        html_content,
+        idempotency_key,
+    } = form.0;
+
+    let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
+    if let Some(saved_response) = get_saved_response(&pool, &idempotency_key, *user_id)
+        .await
+        .map_err(e500)?
+    {
+        FlashMessage::info("The newsletter issue has been published!").send();
+        return Ok(saved_response);
+    }
+
+    let subscribers = get_confirmed_subscribers(&pool).await.map_err(e500)?;
     for subscriber in subscribers {
         // The compiler forces us to handle both the happy and unhappy case!
         match subscriber {
@@ -73,14 +100,15 @@ pub async fn publish_newsletter(
                 email_client
                     .send_email(
                         &subscriber.email,
-                        form.title.as_str(),
-                        form.html.as_str(),
-                        form.text.as_str(),
+                        title.as_str(),
+                        html_content.as_str(),
+                        text_content.as_str(),
                     )
                     .await
                     .with_context(|| {
                         format!("Failed to send newsletter issue to {}", subscriber.email)
-                    })?;
+                    })
+                    .map_err(e500)?;
             }
             Err(error) => {
                 tracing::warn!(
@@ -95,7 +123,13 @@ pub async fn publish_newsletter(
             }
         }
     }
-    Ok(HttpResponse::Ok().finish())
+
+    FlashMessage::info("The newsletter issue has been published!").send();
+    let response = see_other("/admin/newsletters");
+    let response = save_response(&pool, &idempotency_key, *user_id, response)
+        .await
+        .map_err(e500)?;
+    Ok(response)
 }
 
 #[tracing::instrument(name = "Get confirmed subscribers", skip(pool))]

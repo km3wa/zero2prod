@@ -11,6 +11,8 @@ pub async fn send_newsletter_form(
     session: TypedSession,
     flash_messages: IncomingFlashMessages,
 ) -> Result<HttpResponse, actix_web::Error> {
+    let idempotency_key = uuid::Uuid::new_v4();
+
     if session.get_user_id().map_err(e500)?.is_none() {
         return Ok(see_other("/login"));
     };
@@ -42,16 +44,17 @@ pub async fn send_newsletter_form(
                         <label>HTML content
                             <textarea
                                 placeholder="Enter content as HTML"
-                                name="html"
+                                name="html_content"
                             >
                         </label>
                         <label>Plaintext content
                             <textarea
                                 placeholder="Enter content as plaintext"
-                                name="text"
+                                name="text_content"
                             >
                         </label>
                         <br>
+                        <input hidden type="text" name="idempotency_key" value="{idempotency_key}">
                         <button type="submit">Submit newsletter</button>
                     </form>
                     <p><a href="/admin/dashboard">&lt;- Back</a></p>
